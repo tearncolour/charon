@@ -47,6 +47,14 @@ check_vm() {
 	# Check if there is a VM and it satisfies the conditions Charon
 	# requires
 
+	case $(uname -s) in
+		Linux)
+			;;
+		*)
+			exit 0
+			;;
+	esac
+
 	# check vm is running
 	if ! pgrep qemu >/dev/null 2>&1; then
 		echo "No virtual machine running"
@@ -160,8 +168,52 @@ case "$(uname)" in
 		# assume the files are already a path accessible to windows
 		left_filename="$( realpath $left_filename  | xargs cygpath -w)"
 		right_filename="$(realpath $right_filename | xargs cygpath -w)"
-		comp_filename="$( realpath "$BASE_DIR\\charon\\compare.exe" \
+		comp_filename="$( realpath "$BASE_DIR/compare.exe" \
 			| xargs cygpath -w)"
+
+		# Check if SolidWorks is running
+		if ! tasklist | grep -i "SLDWORKS.exe" > /dev/null; then
+			echo "SolidWorks is not running. Attempting to start it..."
+			
+			# Try to find SolidWorks in common locations
+			SW_PATH=""
+			# Check C and D drives
+			for drive in c d; do
+				# Check common installation paths
+				possible_paths="
+					Program Files/SOLIDWORKS Corp/SOLIDWORKS/SLDWORKS.exe
+					Program Files/SOLIDWORKS Corp/SOLIDWORKS (2)/SLDWORKS.exe
+					Program Files/SOLIDWORKS Corp/SOLIDWORKS (3)/SLDWORKS.exe
+				"
+				# Handle spaces in paths by setting IFS
+				SAVEIFS=$IFS
+				IFS=$(echo -en "\n\b")
+				for p in $possible_paths; do
+					full_path="/$drive/$p"
+					# Remove leading/trailing whitespace
+					full_path=$(echo "$full_path" | xargs)
+					if [ -f "$full_path" ]; then
+						SW_PATH="$full_path"
+						IFS=$SAVEIFS
+						break 2
+					fi
+				done
+				IFS=$SAVEIFS
+			done
+
+			if [ -n "$SW_PATH" ]; then
+				echo "Found SolidWorks at $SW_PATH"
+				"$SW_PATH" &
+			else
+				echo "Could not locate SLDWORKS.exe automatically. Trying 'start sldworks'..."
+				cmd /c start sldworks
+			fi
+			
+			echo "Waiting 30 seconds for SolidWorks to initialize..."
+			sleep 30
+		else
+			echo "SolidWorks is already running."
+		fi
 		;;
 esac
 

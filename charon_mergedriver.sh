@@ -35,15 +35,16 @@ esac
 
 
 # make the filenames human-readable.
-local_filename="$(echo  "$4" | sed 's/\(.*\)\.\([^.]*\)/\1_LOCAL\.\2/')"
-remote_filename="$(echo "$4" | sed 's/\(.*\)\.\([^.]*\)/\1_REMOTE\.\2/')"
-cp $2 $local_filename
-cp $3 $remote_filename
+timestamp=$(date +%s)
+local_filename="$(echo  "$4" | sed 's/\(.*\)\.\([^.]*\)/\1_LOCAL_'$timestamp'\.\2/')"
+remote_filename="$(echo "$4" | sed 's/\(.*\)\.\([^.]*\)/\1_REMOTE_'$timestamp'\.\2/')"
+cp "$2" "$local_filename"
+cp "$3" "$remote_filename"
 
 # Delete all the files with message if a keyboard interrupt occurs
 trap "
 	echo ' Aborting merge...'
-	rm -f $1 $2 $3 $local_filename $remote_filename
+	rm -f \"$1\" \"$2\" \"$3\" \"$local_filename\" \"$remote_filename\"
 	exit 127
 " INT
 
@@ -56,12 +57,12 @@ while true; do
 	read -p "Enter your choice: " choice
 	case "$choice" in
 		"local" )
-			mv $local_filename $2
-			rm $remote_filename
+			mv "$local_filename" "$2"
+			rm -f "$remote_filename"
 			exit 0;;
 		"remote" )
-			mv $remote_filename $2
-			rm $local_filename
+			mv "$remote_filename" "$2"
+			rm -f "$local_filename"
 			exit 0;;
 		"edit" )
 			# The driver will check health etc
@@ -69,12 +70,12 @@ while true; do
 				echo "Opening $prog_name to merge $4..."
 				echo "$prog_name must exit fully before this merge can continue"
 				echo "You can then choose a file to take, or abort"
-				$driver $local_filename $remote_filename
+				$driver "$local_filename" "$remote_filename"
 			fi
 			;;
 		"abort" )
-			rm $local_filename
-			rm $remote_filename
+			rm -f "$local_filename"
+			rm -f "$remote_filename"
 			exit 1;;
 		*)
 			echo "Please choose one of the specified options";;

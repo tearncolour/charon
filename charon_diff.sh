@@ -48,10 +48,11 @@ if [ "$3" = "$6" ]; then
 fi
 
 # move the files somewhere more understandable
-left_filename="$(echo "$1" | sed 's/\(.*\)\.\([^.]*\)/\1_LEFT\.\2/')"
-right_filename="$(echo "$1" | sed 's/\(.*\)\.\([^.]*\)/\1_RIGHT\.\2/')"
-cp $2 $left_filename
-cp $5 $right_filename
+timestamp=$(date +%s)
+left_filename="$(echo "$1" | sed 's/\(.*\)\.\([^.]*\)/\1_BEFORE_'$timestamp'\.\2/')"
+right_filename="$(echo "$1" | sed 's/\(.*\)\.\([^.]*\)/\1_AFTER_'$timestamp'\.\2/')"
+cp "$2" "$left_filename"
+cp "$5" "$right_filename"
 
 # Delete the files with message if a keyboard interrupt occurs
 trap "
@@ -64,7 +65,7 @@ if ! $driver --check-health; then
 	echo "File $1 differs"
 else
 	echo "Opening $prog_name to diff $1..."
-	$driver $left_filename $right_filename
+	$driver "$left_filename" "$right_filename"
 fi
 
-rm $left_filename $right_filename
+rm -f "$left_filename" "$right_filename"
